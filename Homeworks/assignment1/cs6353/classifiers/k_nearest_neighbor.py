@@ -60,10 +60,8 @@ class KNearestNeighbor(object):
       is the Euclidean distance between the ith test point and the jth training
       point.
     """
-    # num_test = X.shape[0]
-    # num_train = self.X_train.shape[0]
-    num_test = 1
-    num_train = 2
+    num_test = X.shape[0]
+    num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
     for i in range(num_test):
       for j in range(num_train):
@@ -73,12 +71,12 @@ class KNearestNeighbor(object):
         # training point, and store the result in dists[i, j]. You should   #
         # not use a loop over dimension, nor use np.linalg.norm().          #
         #####################################################################
-        print("hello you big boi")
-        return
+        total = np.sum(np.abs(X[i] - self.X_train[j]))
+        l2 = np.sqrt(total)
+        dists[i,j] = l2
         #####################################################################
         #                       END OF YOUR CODE                            #
         #####################################################################
-    # return dists
     return dists
 
   def compute_distances_one_loop(self, X):
@@ -157,7 +155,18 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+
+      # grab a single row
+      row = dists[i]
+
+      # sort the row
+      sorted_row = np.argsort(row)
+
+      # get k labels
+      sorted_lables = row[sorted_row]
+      closest_y = sorted_lables[:k]
+      print(closest_y)
+      return
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
