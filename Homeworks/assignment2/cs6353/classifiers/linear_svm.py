@@ -32,12 +32,16 @@ def svm_loss_naive(W, X, y, reg):
       if j == y[i]:
         continue
       margin = scores[j] - correct_class_score + 1 # note delta = 1
+      # Note: Both partial derivatives only have an effect when the margin is greater than 0
       if margin > 0:
         loss += margin
+        dW[:, j] += X[i] + np.dot(W[j],W[j]) * 2 * reg
+        dW[:, y[i]] -= X[i] + np.dot(W[i], W[i]) * 2 * reg
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
+  dW /= num_train # We must also average the dW because if the loss is averaged that means we also have a 1/N in the gradient
 
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
@@ -50,7 +54,7 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
-  pass
+  # SEE ABOVE CODE
   #####################################################################
   #                       END OF YOUR CODE                            #
   #####################################################################
