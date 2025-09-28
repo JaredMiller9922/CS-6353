@@ -69,44 +69,23 @@ def svm_loss_vectorized(W, X, y, reg):
   """
   dW = np.zeros(W.shape) # initialize the gradient as zero
   loss = 0.0
-  scores = X @ W 
-
-  # Find a vectorized way to get the correct class for each row (example)
-  correct_scores = scores[np.arange(scores.shape[0]), y].reshape(-1, 1)
-  margins = np.maximum(0, scores - correct_scores + 1)
-
-  # We don't want the correct classes to contribute to the margins
-  margins[np.arange(margins.shape[0]), y] = 0
-
-  # Update true classes gradients
-  violation_count = np.count_nonzero(margins, axis = 1)
-  dW[:, y] -= (violation_count.reshape(-1,1) * X).T
-
-  # Update non true classes gradients
-  incorrect_classes = margins > 0
-  print("shape of incorect classes")
-  print(incorrect_classes.shape)
-  print("shape of incorect classes")
-  print(dW.shape)
-  dW[incorrect_classes] += X 
- 
-
-  loss = np.sum(margins)
-  loss /= X.shape[0]
-  loss += reg * np.sum(W * W)
   
-  dW /= X.shape[0]
-  dW += reg * 2 * np.dot(W,W)
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  scores = X @ W
+  correct_class_scores = scores[np.arange(scores.shape[0]), y]
+  margins = scores - correct_class_scores.reshape(-1,1) + 1
+  margins[margins < 0] = 0
+  margins[np.arange(margins.shape[0]), y] = 0
+  loss = np.sum(margins)
+  
+  loss /= X.shape[0]
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-
 
   #############################################################################
   # TODO:                                                                     #
@@ -117,7 +96,14 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  num_violations = np.count_nonzero(margins, axis=1) # -1 to not include the true label
+  margins[margins > 0] = 1
+  margins[np.arange(margins.shape[0]), y] = -num_violations
+  dW = margins.T @ X
+  dW = dW.T
+
+  dW /= X.shape[0]
+  dW += 2 * W * reg
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
