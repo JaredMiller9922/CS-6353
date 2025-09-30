@@ -63,6 +63,7 @@ class TwoLayerNet(object):
     - grads: Dictionary mapping parameter names to gradients of those parameters
       with respect to the loss function; has the same keys as self.params.
     """
+    print(X.shape)
     # Unpack variables from the params dictionary
     W1, b1 = self.params['W1'], self.params['b1']
     W2, b2 = self.params['W2'], self.params['b2']
@@ -75,7 +76,13 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    layer1_out = X @ W1 + b1.reshape(1,-1)
+
+    # Send through a ReLU
+    layer1_out[layer1_out < 0] = 0
+
+    layer2_out = layer1_out @ W2 + b2.reshape(1,-1)
+    scores = layer2_out 
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -92,7 +99,14 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    correct_class_scores = scores[np.arange(scores.shape[0]), y] 
+    denominators = np.sum(np.exp(scores), axis = 1)
+    loss_vec = -1 * np.log(np.exp(correct_class_scores) / denominators)
+    loss = np.sum(loss_vec)
+    loss /= X.shape[0]
+    loss += reg * np.sum(W1 * W1)
+    loss += reg * np.sum(W2 * W2)
+    print(loss)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
