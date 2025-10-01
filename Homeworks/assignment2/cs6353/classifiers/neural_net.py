@@ -63,7 +63,6 @@ class TwoLayerNet(object):
     - grads: Dictionary mapping parameter names to gradients of those parameters
       with respect to the loss function; has the same keys as self.params.
     """
-    print(X.shape)
     # Unpack variables from the params dictionary
     W1, b1 = self.params['W1'], self.params['b1']
     W2, b2 = self.params['W2'], self.params['b2']
@@ -79,9 +78,10 @@ class TwoLayerNet(object):
     layer1_out = X @ W1 + b1.reshape(1,-1)
 
     # Send through a ReLU
-    layer1_out[layer1_out < 0] = 0
+    rel_out = layer1_out.copy()
+    rel_out[rel_out < 0] = 0
 
-    layer2_out = layer1_out @ W2 + b2.reshape(1,-1)
+    layer2_out = rel_out @ W2 + b2.reshape(1,-1)
     scores = layer2_out 
     #############################################################################
     #                              END OF YOUR CODE                             #
@@ -100,13 +100,12 @@ class TwoLayerNet(object):
     # classifier loss.                                                          #
     #############################################################################
     correct_class_scores = scores[np.arange(scores.shape[0]), y] 
-    denominators = np.sum(np.exp(scores), axis = 1)
-    loss_vec = -1 * np.log(np.exp(correct_class_scores) / denominators)
+    loss_vec = -1 * np.log(np.exp(correct_class_scores) / np.sum(np.exp(scores), axis = 1)) 
     loss = np.sum(loss_vec)
     loss /= X.shape[0]
     loss += reg * np.sum(W1 * W1)
     loss += reg * np.sum(W2 * W2)
-    print(loss)
+    # print(loss)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -118,7 +117,43 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    s_js = np.exp(scores) / np.sum(np.exp(scores), axis = 1).reshape(-1,1)
+    s_js[np.arange(s_js.shape[0]), y] -= 1
+    # dw_s = X.T @ s_js
+
+    # print("layer2_out shape: " + str(layer2_out.shape))
+    # print("dw_s shape: " + str(dw_s.shape))
+    # dlds = (-1 / layer2_out) @ dw_s.T
+    
+    # Noticing that in the gradient the only difference between the updates is that when 
+    # j == y[i] we simply subtract 1 from s_j
+    grads['W2'] = (s_js.T @ rel_out).T
+    grads['b2'] = np.sum(s_js, axis=0)
+
+    #print("s_js shape: " + str(s_js.shape))
+    #print("rel_out shape: " + str(rel_out.shape))
+    #print("W2 shape: " + str(W2.shape))
+    #print("X shape: " + str(X.shape))
+
+    layer1_out_mask = layer1_out > 0
+    temp = (s_js @ W2.T) * layer1_out_mask # Multiply by the mask to only include values that "pass" the ReLu
+    grads['W1'] = X.T @ temp
+
+    grads['b1'] = np.sum(temp, axis = 0)
+
+    grads['W2'] /= N
+    grads['W1'] /= N
+    grads['b1'] /= N
+    grads['b2'] /= N
+
+    # Regualarizer
+    grads['W1'] += 2 * W1 * reg
+    grads['W2'] += 2 * W2 * reg
+
+    # print("grads[W2] shape: " + str(grads['W2'].shape))
+    # print("grads[W1] shape: " + str(grads['W1'].shape))
+    # print("grads[b2] shape: " + str(grads['b2'].shape))
+    # print("grads[b1] shape: " + str(grads['b1'].shape))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -162,7 +197,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      indices = np.random.choice(X.shape[0],batch_size)
+      X_batch = X[indices]
+      y_batch = y[indices]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -177,7 +214,9 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      for param_name in grads:
+        self.params[param_name] -= learning_rate * grads[param_name]
+
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -222,7 +261,14 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    layer1_out = X @ self.params['W1'] + self.params['b1'].reshape(1,-1)
+
+    # Send through a ReLU
+    rel_out = layer1_out.copy()
+    rel_out[rel_out < 0] = 0
+
+    layer2_out = rel_out @ self.params['W2'] + self.params['b2'].reshape(1,-1)
+    y_pred = np.argmax(layer2_out, axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
