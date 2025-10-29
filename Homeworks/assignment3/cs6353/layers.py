@@ -292,6 +292,9 @@ def batchnorm_backward_alt(dout, cache):
     as batchnorm_backward, but might not use all of the values in the cache.
 
     Inputs / outputs: Same as batchnorm_backward
+    - Response: I was advised by TA Iris Nguyen to use this as a resource
+      https://ryli.design/blog/bnbackpass which linked to https://kevinzakka.github.io/2016/09/14/batch_normalization/. 
+      Both resources were helpful to getting me to my final equation
     '''
     dx, dgamma, dbeta = None, None, None
     ###########################################################################
@@ -302,11 +305,17 @@ def batchnorm_backward_alt(dout, cache):
     # should be able to compute gradients with respect to the inputs in a     #
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
-    pass
+    # There is not really any simplification for dgamma and dbeta so they remain the same
+    n_samples, eps, u_b, s_2_b, x, x_i_b, gamma = cache
+
+    dgamma = np.sum(dout * x_i_b, axis=0)
+    dbeta = np.sum(dout, axis=0)
+
+    dx = gamma/np.sqrt(s_2_b) * (dout - 1/n_samples * np.sum(dout, axis=0) - (x_i_b / n_samples) * np.sum(dout * x_i_b, axis=0))
+
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-
     return dx, dgamma, dbeta
 
 def layernorm_forward(x, gamma, beta, ln_param):
