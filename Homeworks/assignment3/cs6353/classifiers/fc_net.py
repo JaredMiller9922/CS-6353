@@ -255,26 +255,52 @@ class FullyConnectedNet(object):
         out_list = []
         cache_list = []
 
-        # First Layer
-        l1_out, l1_cache = affine_relu_forward(X, self.params['W1'], self.params['b1'])
-        out_list.append(l1_out)
-        cache_list.append(l1_cache)
+        if self.normalization=='batchnorm':
+          # First Layer
+          l1_out, l1_cache = affine_batch_relu_forward(X, self.params['W1'], self.params['b1'], self.params['gamma1'], self.params['beta1'], bn_param[0])
+          out_list.append(l1_out)
+          cache_list.append(l1_cache)
 
-        # Middle Layers
-        for i in range(1, self.num_layers - 1):
-          weight_string = 'W'+str(i + 1)
-          bias_string = 'b'+str(i + 1)
+          # Middle Layers
+          for i in range(1, self.num_layers - 1):
+            weight_string = 'W'+str(i + 1)
+            bias_string = 'b'+str(i + 1)
+            gamma_string = 'gamma'+str(i+1)
+            beta_string = 'beta'+str(i+1)
 
-          cur_out, cur_cache = affine_relu_forward(out_list[i-1], self.params[weight_string], self.params[bias_string])
-          out_list.append(cur_out)
-          cache_list.append(cur_cache)
+            cur_out, cur_cache = affine_batch_relu_forward(out_list[i-1], self.params[weight_string], self.params[bias_string], self.params[gamma_string], self.params[beta_string], bn_param[i-1])
+            out_list.append(cur_out)
+            cache_list.append(cur_cache)
+          
+          # Last Layer
+          lf_out, lf_cache = affine_forward(out_list[len(out_list) - 1], 
+                                            self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
+          out_list.append(lf_out)
+          cache_list.append(lf_cache)
+          scores = lf_out
+
         
-        # Last Layer
-        lf_out, lf_cache = affine_forward(out_list[len(out_list) - 1], 
-                                          self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
-        out_list.append(lf_out)
-        cache_list.append(lf_cache)
-        scores = lf_out
+        else:
+          # First Layer
+          l1_out, l1_cache = affine_relu_forward(X, self.params['W1'], self.params['b1'])
+          out_list.append(l1_out)
+          cache_list.append(l1_cache)
+
+          # Middle Layers
+          for i in range(1, self.num_layers - 1):
+            weight_string = 'W'+str(i + 1)
+            bias_string = 'b'+str(i + 1)
+
+            cur_out, cur_cache = affine_relu_forward(out_list[i-1], self.params[weight_string], self.params[bias_string])
+            out_list.append(cur_out)
+            cache_list.append(cur_cache)
+          
+          # Last Layer
+          lf_out, lf_cache = affine_forward(out_list[len(out_list) - 1], 
+                                            self.params['W' + str(self.num_layers)], self.params['b' + str(self.num_layers)])
+          out_list.append(lf_out)
+          cache_list.append(lf_cache)
+          scores = lf_out
 
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -314,28 +340,54 @@ class FullyConnectedNet(object):
         dw_list = []
         db_list = []
 
-        # Last Layer
-        l_dx, l_dw, l_db = affine_backward(s_dx, cache_list[len(cache_list) - 1])
-        dx_list.append(l_dx)
-        dw_list.append(l_dw)
-        db_list.append(l_db)
+        if self.normalization=='batchnorm':
+          # Last Layer
+          l_dx, l_dw, l_db = affine_batch_relu_backward(s_dx, cache_list[len(cache_list) - 1])
+          dx_list.append(l_dx)
+          dw_list.append(l_dw)
+          db_list.append(l_db)
 
-        # Rest of Layers
-        for i in range(len(cache_list) - 2, -1, -1):
-          cur_dx, cur_dw, cur_db = affine_relu_backward(dx_list[len(dx_list)-1], cache_list[i])
-          dx_list.append(cur_dx)
-          dw_list.append(cur_dw)
-          db_list.append(cur_db)
-        
-        for i in range(self.num_layers, 0, -1):
-          weight_string = 'W'+str(i)
-          bias_string = 'b'+str(i)
+          # Rest of Layers
+          for i in range(len(cache_list) - 2, -1, -1):
+            cur_dx, cur_dw, cur_db = affine_batch_relu_backward(dx_list[len(dx_list)-1], cache_list[i])
+            dx_list.append(cur_dx)
+            dw_list.append(cur_dw)
+            db_list.append(cur_db)
+          
+          for i in range(self.num_layers, 0, -1):
+            weight_string = 'W'+str(i)
+            bias_string = 'b'+str(i)
 
-          grads[weight_string] = 0
-          grads[bias_string] = 0
+            grads[weight_string] = 0
+            grads[bias_string] = 0
 
-          grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
-          grads[bias_string] += db_list[np.abs(i-self.num_layers)]
+            grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
+            grads[bias_string] += db_list[np.abs(i-self.num_layers)]
+
+        else:
+          # Last Layer
+          l_dx, l_dw, l_db = affine_backward(s_dx, cache_list[len(cache_list) - 1])
+          dx_list.append(l_dx)
+          dw_list.append(l_dw)
+          db_list.append(l_db)
+
+          # Rest of Layers
+          for i in range(len(cache_list) - 2, -1, -1):
+            cur_dx, cur_dw, cur_db = affine_relu_backward(dx_list[len(dx_list)-1], cache_list[i])
+            dx_list.append(cur_dx)
+            dw_list.append(cur_dw)
+            db_list.append(cur_db)
+          
+          for i in range(self.num_layers, 0, -1):
+            weight_string = 'W'+str(i)
+            bias_string = 'b'+str(i)
+
+            grads[weight_string] = 0
+            grads[bias_string] = 0
+
+            grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
+            grads[bias_string] += db_list[np.abs(i-self.num_layers)]
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
