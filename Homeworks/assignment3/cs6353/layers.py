@@ -292,9 +292,6 @@ def batchnorm_backward_alt(dout, cache):
     as batchnorm_backward, but might not use all of the values in the cache.
 
     Inputs / outputs: Same as batchnorm_backward
-    - Response: I was advised by TA Iris Nguyen to use this as a resource
-      https://ryli.design/blog/bnbackpass which linked to https://kevinzakka.github.io/2016/09/14/batch_normalization/. 
-      Both resources were helpful to getting me to my final equation
     '''
     dx, dgamma, dbeta = None, None, None
     ###########################################################################
@@ -312,10 +309,10 @@ def batchnorm_backward_alt(dout, cache):
     dbeta = np.sum(dout, axis=0)
 
     dx = gamma/np.sqrt(s_2_b) * (dout - 1/n_samples * np.sum(dout, axis=0) - (x_i_b / n_samples) * np.sum(dout * x_i_b, axis=0))
-
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
+
     return dx, dgamma, dbeta
 
 def layernorm_forward(x, gamma, beta, ln_param):
@@ -353,7 +350,25 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
     #Rows in BathNorm: Instances, Rows in LayerNorm: Features
-    pass
+    x = x.T
+
+    # Compute Mini Batch Mean
+    sample_mean = 1/x.shape[0] * np.sum(x, axis=0)
+    sample_mean = sample_mean.reshape(1,-1)
+
+    # Compute Mini Batch Variance
+    sample_var = 1/x.shape[0] * np.sum((x-sample_mean)**2, axis=0)
+
+    # Normalize Incoming Data
+    x_i_b = (x - sample_mean) / np.sqrt(sample_var + eps)
+
+    # Scale and shift
+    # print("shape of gamma: " + str(gamma.shape))
+    # print("shape of x_i_b: " + str(x_i_b.T.shape))
+    # print("shape of beta: " + str(beta.shape))
+    out = gamma * x_i_b.T + beta
+
+    cache = (x.shape[0], eps, sample_mean, sample_var, x, x_i_b, gamma)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -384,11 +399,20 @@ def layernorm_backward(dout, cache):
     # still apply!                                                            #
     ###########################################################################
     #Rows in BathNorm: Instances, Rows in LayerNorm: Features
-    pass
+    n_samples, eps, u_b, s_2_b, x, x_i_b, gamma = cache
+    dl_xi_b = dout * gamma
+    x_i_b = x_i_b.T
+    dl_xi_b = dl_xi_b.T
+    dgamma = np.sum(dout * x_i_b, axis=0)
+    dbeta = np.sum(dout, axis=0)
+
+    dl_ds_2_b = np.sum(dl_xi_b * (x-u_b) * -0.5 * (s_2_b + eps)**(-1.5),axis=0)
+    dl_d_u_b = (np.sum(dl_xi_b * -1 / (np.sqrt(s_2_b + eps)), axis=0)) + dl_ds_2_b * (np.sum(-2 * (x - u_b), axis=0))/(n_samples)
+    dx = dl_xi_b * (1/np.sqrt(s_2_b + eps)) + dl_ds_2_b * (2 * (x-u_b))/(n_samples) + dl_d_u_b * (1/n_samples)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    return dx, dgamma, dbeta
+    return dx.T, dgamma, dbeta
 
 
 def svm_loss(x, y):
