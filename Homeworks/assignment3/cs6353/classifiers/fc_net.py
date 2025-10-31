@@ -372,8 +372,16 @@ class FullyConnectedNet(object):
             db_list.append(cur_db)
             dg_list.append(cur_dg)
             dbet_list.append(cur_dbet)
+
           
-          for i in range(self.num_layers, 0, -1):
+          # Lets reverse our lists to make things easier
+          dw_list.reverse()
+          db_list.reverse()
+          if (self.normalization == 'batchnorm'):
+             dg_list.reverse()
+             dbet_list.reverse()
+          
+          for i in range(1, self.num_layers + 1):
             weight_string = 'W'+str(i)
             bias_string = 'b'+str(i)
             if (i != self.num_layers):
@@ -385,16 +393,16 @@ class FullyConnectedNet(object):
               grads[dg_string] = 0
               grads[dbet_string] = 0
 
-              grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
-              grads[bias_string] += db_list[np.abs(i-self.num_layers)]
-              grads[dg_string] += dg_list[np.abs(i-self.num_layers)]
-              grads[dbet_string] += dbet_list[np.abs(i-self.num_layers)]
+              grads[weight_string] += dw_list[i-1] + self.reg * self.params[weight_string]
+              grads[bias_string] += db_list[i-1]
+              grads[dg_string] += dg_list[i-1]
+              grads[dbet_string] += dbet_list[i-1]
             else:
               grads[weight_string] = 0
               grads[bias_string] = 0
 
-              grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
-              grads[bias_string] += db_list[np.abs(i-self.num_layers)]
+              grads[weight_string] += dw_list[i-1] + self.reg * self.params[weight_string]
+              grads[bias_string] += db_list[i-1]
 
 
         else:
@@ -411,15 +419,22 @@ class FullyConnectedNet(object):
             dw_list.append(cur_dw)
             db_list.append(cur_db)
           
-          for i in range(self.num_layers, 0, -1):
+          # Lets reverse our lists to make things easier
+          dw_list.reverse()
+          db_list.reverse()
+          if (self.normalization == 'batchnorm'):
+             dg_list.reverse()
+             dbet_list.reverse()
+
+          for i in range(1, self.num_layers + 1):
             weight_string = 'W'+str(i)
             bias_string = 'b'+str(i)
 
             grads[weight_string] = 0
             grads[bias_string] = 0
 
-            grads[weight_string] += dw_list[np.abs(i-self.num_layers)] + self.reg * self.params[weight_string]
-            grads[bias_string] += db_list[np.abs(i-self.num_layers)]
+            grads[weight_string] += dw_list[i-1] + self.reg * self.params[weight_string]
+            grads[bias_string] += db_list[i-1]
 
         ############################################################################
         #                             END OF YOUR CODE                             #
