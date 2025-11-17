@@ -71,8 +71,10 @@ class FullyConnectedNet(object):
       # dropout layer so that the layer knows the dropout probability and the mode  #
       # (train / test). You can pass the same dropout_param to each dropout layer.  #
       ###############################################################################
-      
-      pass
+      self.dropout_param['p'] = dropout
+      # Use seed so runs can be consistent and so that numerical gradient checking can work
+      if seed is not None:
+          self.dropout_param['seed'] = seed
       
       ###############################################################################
       #                             END OF YOUR CODE                                #
@@ -102,8 +104,8 @@ class FullyConnectedNet(object):
       # TODO: Set train/test mode for dropout param since it behaves differently    #
       # during training and testing.                                                #
       ###############################################################################
+      self.dropout_param['mode'] = mode
       
-      pass
       
       ###############################################################################
       #                             END OF YOUR CODE                                #
@@ -143,9 +145,10 @@ class FullyConnectedNet(object):
           # TODO: When using dropout, you'll need to pass self.dropout_param to each #
           # dropout forward pass.                                                    #
           ############################################################################
-
-          pass
-          
+          prev_layer, do_cache = dropout_forward(prev_layer, self.dropout_param)
+          # Don't forget to append cache
+          cache.append(do_cache)
+          # layer.append(this_layer)
           ############################################################################
           #                             END OF YOUR CODE                             #
           ############################################################################
