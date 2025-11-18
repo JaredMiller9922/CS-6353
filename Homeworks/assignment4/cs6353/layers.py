@@ -346,8 +346,29 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
+  # Unpack conv_param
+  stride = conv_param['stride']
+  pad = conv_param['pad']
 
-  pass
+  # Pad all images. We only pad height and width
+  x_padded = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), mode = 'constant')
+
+  # For each input image
+  for img in x_padded:
+    # For exach filter
+    print("The shape of the image: "+ str(img.shape))
+    for f in w:
+      print("The shape of the filter: "+ str(f.shape))
+      # Define the size of the output 
+      _, H, W = img.shape
+      _, HH, WW = f.shape
+      H_p = 1 + (H + 2 * pad - HH) / stride
+      W_p = 1 + (W + 2 * pad - WW) / stride
+      print("output shape: " + "(" + str(H_p) + "x" + str(W_p) + ")")
+
+
+
+      # Append the result of the filter to the output
 
   #############################################################################
   #                             END OF YOUR CODE                              #
