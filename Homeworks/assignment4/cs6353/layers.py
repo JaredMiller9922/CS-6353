@@ -355,7 +355,7 @@ def conv_forward_naive(x, w, b, conv_param):
 
   # Define the output
   _,_,H,W = x.shape
-  N,_,HP,HW = x_padded.shape
+  N,_,PH,PW = x_padded.shape
   F,_,HH,WW = w.shape
   H_p = 1 + (H + 2 * pad - HH) // stride
   W_p = 1 + (W + 2 * pad - WW) // stride
@@ -370,11 +370,11 @@ def conv_forward_naive(x, w, b, conv_param):
       out_i = 0
 
       # Vertical Loop
-      while i <= HP-HH:
+      while i <= PH-HH:
         # Horizontal Loop
         j = 0
         out_j = 0
-        while j <= HW-WW:
+        while j <= PW-WW:
           # Find patch
           patch = n[:, i:i+HH, j:j+WW]
           # convolve patch with filter
@@ -411,8 +411,58 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
+  x,w,b,conv_param = cache
 
-  pass
+  db = np.zeros_like(b)
+  dx = np.zeros_like(x)
+  dw = np.zeros_like(w)
+
+  # b[f] is added everytime (i,j) uses filter f
+  for f_idx,_ in enumerate(w):
+    db[f_idx] = np.sum(dout[:,f_idx,:,:])
+  
+
+  # Unpack conv_param
+  stride = conv_param['stride']
+  pad = conv_param['pad']
+
+  # Pad all images. We only pad height and width
+  x_padded = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), mode = 'constant')
+  dx_padded = np.zeros_like(x_padded)
+
+  # Keep track of sizes
+  _,_,PH,PW = x_padded.shape
+  _,_,HH,WW = w.shape
+
+  # For each input image
+  for n_idx, n in enumerate(x_padded):
+    # For exach filter
+    for f_idx, f in enumerate(w):
+      i = 0
+      out_i = 0
+
+      # Vertical Loop
+      while i <= PH-HH:
+        # Horizontal Loop
+        j = 0
+        out_j = 0
+        while j <= PW-WW:
+          # Find patch
+          patch = n[:, i:i+HH, j:j+WW]
+          # Calculate gradients
+          dw[f_idx] += dout[n_idx,f_idx,out_i,out_j] * patch
+          dx_padded[n_idx, :, i:i+HH, j:j+WW] += dout[n_idx,f_idx,out_i,out_j] * w[f_idx]
+          # Increment horizontally
+          j = j + stride
+          out_j = out_j + 1
+
+        # Increment vertically
+        i = i + stride
+        out_i = out_i + 1
+    
+    # Remove padding from dx_padded
+    dx = dx_padded[:,:, pad:-pad, pad:-pad]
+
 
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -439,8 +489,41 @@ def max_pool_forward_naive(x, pool_param):
   #############################################################################
   # TODO: Implement the max pooling forward pass                              #
   #############################################################################
+  pool_height = pool_param['pool_height']
+  pool_width = pool_param['pool_width']
+  stride = pool_param['stride']
 
-  pass
+
+  # Define the output
+  N,C,H,W = x.shape
+
+  H_p = 1 + (H - pool_height) // stride
+  W_p = 1 + (W - pool_width) // stride
+
+  out = np.zeros((N,C,H_p, W_p))
+
+  # For each input image
+  for n_idx, n in enumerate(x):
+    for c in range(0,C):
+      i = 0
+      out_i = 0
+      # Vertical Loop
+      while i <= H-pool_height:
+        # Horizontal Loop
+        j = 0
+        out_j = 0
+        while j <= W-pool_width:
+          # Find patch
+          patch = n[c, i:i+pool_height, j:j+pool_width]
+          # convolve patch with filter
+          out[n_idx,c,out_i,out_j] = np.max(patch)
+          # Increment horizontally
+          j = j + stride
+          out_j = out_j + 1
+
+        # Increment vertically
+        i = i + stride
+        out_i = out_i + 1
 
   #############################################################################
   #                             END OF YOUR CODE                              #
@@ -464,8 +547,44 @@ def max_pool_backward_naive(dout, cache):
   #############################################################################
   # TODO: Implement the max pooling backward pass                             #
   #############################################################################
+  x, pool_param = cache
 
-  pass
+  dx = np.zeros_like(x)
+
+  pool_height = pool_param['pool_height']
+  pool_width = pool_param['pool_width']
+  stride = pool_param['stride']
+
+  # Define the output
+  _,C,H,W = x.shape
+
+  # For each input image
+  for n_idx, n in enumerate(x):
+    for c in range(0,C):
+      i = 0
+      out_i = 0
+      # Vertical Loop
+      while i <= H-pool_height:
+        # Horizontal Loop
+        j = 0
+        out_j = 0
+        while j <= W-pool_width:
+          # Find patch
+          patch = n[c, i:i+pool_height, j:j+pool_width]
+
+          # mask so we know where to send gradient back
+          mask = (patch == np.max(patch))
+
+          # Only update the value that was the MAX
+          dx[n_idx,c,i:i+pool_height,j:j+pool_width] += mask * dout[n_idx,c,out_i,out_j]
+
+          # Increment horizontally
+          j = j + stride
+          out_j = out_j + 1
+
+        # Increment vertically
+        i = i + stride
+        out_i = out_i + 1
 
   #############################################################################
   #                             END OF YOUR CODE                              #
