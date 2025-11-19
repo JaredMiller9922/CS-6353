@@ -353,22 +353,39 @@ def conv_forward_naive(x, w, b, conv_param):
   # Pad all images. We only pad height and width
   x_padded = np.pad(x, ((0,0), (0,0), (pad,pad), (pad,pad)), mode = 'constant')
 
+  # Define the output
+  _,_,H,W = x.shape
+  N,_,HP,HW = x_padded.shape
+  F,_,HH,WW = w.shape
+  H_p = 1 + (H + 2 * pad - HH) // stride
+  W_p = 1 + (W + 2 * pad - WW) // stride
+
+  out = np.zeros((N,F,H_p, W_p))
+
   # For each input image
-  for img in x_padded:
+  for n_idx, n in enumerate(x_padded):
     # For exach filter
-    print("The shape of the image: "+ str(img.shape))
-    for f in w:
-      print("The shape of the filter: "+ str(f.shape))
-      # Define the size of the output 
-      _, H, W = img.shape
-      _, HH, WW = f.shape
-      H_p = 1 + (H + 2 * pad - HH) / stride
-      W_p = 1 + (W + 2 * pad - WW) / stride
-      print("output shape: " + "(" + str(H_p) + "x" + str(W_p) + ")")
+    for f_idx, f in enumerate(w):
+      i = 0
+      out_i = 0
 
+      # Vertical Loop
+      while i <= HP-HH:
+        # Horizontal Loop
+        j = 0
+        out_j = 0
+        while j <= HW-WW:
+          # Find patch
+          patch = n[:, i:i+HH, j:j+WW]
+          # convolve patch with filter
+          out[n_idx,f_idx,out_i,out_j] = np.sum(patch * f) + b[f_idx]
+          # Increment horizontally
+          j = j + stride
+          out_j = out_j + 1
 
-
-      # Append the result of the filter to the output
+        # Increment vertically
+        i = i + stride
+        out_i = out_i + 1
 
   #############################################################################
   #                             END OF YOUR CODE                              #
