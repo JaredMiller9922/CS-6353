@@ -1,8 +1,6 @@
-files="BatchNormalization.ipynb
-ConvolutionalNetworks.ipynb
+files="ConvolutionalNetworks.ipynb
 Dropout.ipynb
-PyTorch.ipynb
-TensorFlow.ipynb"
+"
 
 for file in $files
 do
